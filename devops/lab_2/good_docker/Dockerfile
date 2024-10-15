@@ -1,13 +1,13 @@
-# Хороший Dockerfile
+# "Хороший" Dockerfile
 
-# Легковесный и актуальный образ Python 3.9 slim
+# Легковесный и актуальный образ Python
 FROM python:3.9-slim
 
-# Объединяем команды RUN для уменьшения количества слоёв
-RUN apt-get update && apt-get install -y git curl && rm -rf /var/lib/apt/lists/*
+# Объединяем команды RUN
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 
-# Указание рабочей директории
-WORKDIR /app
+WORKDIR /good_docker/app
 
 # Сначала копируем только файл зависимостей, чтобы сохранить кэш слоёв
 COPY requirements.txt .
@@ -19,10 +19,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Не сохраняем секреты в образе — они будут передаваться через переменные окружения
-# Использование переменной окружения SECRET_TOKEN
 
 # Запуск от обычного пользователя для повышения безопасности
 USER nobody
 
-# Запуск приложения
-CMD ["python", "app/app.py"]
+CMD ["python", "app.py"]
