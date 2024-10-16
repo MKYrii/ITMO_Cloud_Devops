@@ -7,7 +7,7 @@ FROM python:3.9-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /good_docker/app
+WORKDIR /good_docker
 
 # Сначала копируем только файл зависимостей, чтобы сохранить кэш слоёв
 COPY requirements.txt .
@@ -23,4 +23,4 @@ COPY . .
 # Запуск от обычного пользователя для повышения безопасности
 USER nobody
 
-CMD ["python", "app.py"]
+CMD ["python", "app/app.py"]

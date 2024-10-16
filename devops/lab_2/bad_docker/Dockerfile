@@ -10,7 +10,7 @@ RUN apt-get update
 RUN apt-get install -y git
 RUN apt-get install -y curl
 
-WORKDIR /bad_docker/app
+WORKDIR /bad_docker
 
 # Использование ADD вместо COPY для простого копирования файлов (лишние возможности, которые могут привести к ошибкам)
 ADD . .
@@ -19,7 +19,7 @@ ADD . .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Хранение конфиденциальной информации в слоях
-RUN echo "SECRET_TOKEN=12345" >> .env
+RUN echo "SECRET_TOKEN=12345" >> /bad_docker/app/.env
 
 # Запуск от root пользователя (небезопасно)
-CMD ["python", "app.py"]
+CMD ["python", "app/app.py"]
