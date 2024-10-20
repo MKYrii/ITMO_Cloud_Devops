@@ -1,0 +1,35 @@
+version: "3"
+
+services:
+    app:
+        build: ./app
+        ports:
+            - "5000:5000"
+        environment:
+            - DB_HOST=db
+            - DB_NAME=mydb
+            - DB_USER=user
+            - DB_PASSWORD=password
+            - APP_VERSION="Bad Compose Version"
+        networks:
+            - default
+
+    db:
+        image: postgres
+        environment:
+            POSTGRES_DB: mydb
+            POSTGRES_USER: user
+            POSTGRES_PASSWORD: password
+        ports:
+            - "5432:5432"
+        volumes:
+            - db_data_bad:/var/lib/postgresql/data
+        networks:
+            - default
+
+volumes:
+    db_data_bad:
+
+networks:
+    default:
+        driver: bridge
