@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+    app:
+        build: ./app
+        ports:
+            - "5000:5000"
+        environment:
+            - DB_HOST=db
+            - DB_NAME=mydb
+            - DB_USER=user
+            - DB_PASSWORD=password
+            - APP_VERSION="Good Compose Version"
+        depends_on:
+            - db
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.5"
+                    memory: 512M
+        networks:
+            - default
+
+    db:
+        image: postgres:13.4
+        environment:
+            POSTGRES_DB: mydb
+            POSTGRES_USER: user
+            POSTGRES_PASSWORD: password
+        ports:
+            - "5432:5432"
+        volumes:
+            - db_data_good:/var/lib/postgresql/data
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.5"
+                    memory: 512M
+        networks:
+            - default
+
+volumes:
+    db_data_good:
+
+networks:
+    default:
+        driver: bridge
