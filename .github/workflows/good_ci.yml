@@ -42,7 +42,7 @@ jobs:
         # Тесты теперь обязательно должны завершиться успешно
         run: |
           source venv/bin/activate
-          pytest tests
+          pytest
 
       - name: Build artifact
         run: |
