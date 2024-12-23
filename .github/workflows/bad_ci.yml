@@ -3,13 +3,13 @@ name: Bad CI
 on:
   push:
     branches:
-      - '*' # (1) Неоптимальные триггеры для сборок
+      - '*' # (1) Неоптимальные триггеры для сборок — запускается при пуше в любую ветку
   pull_request:
     branches:
-      - '*' # (1) Неоптимальные триггеры для сборок
+      - '*' # (1) То же самое для pull_request в любую ветку
 
 jobs:
-  build_and_deploy: # (2) Нет разделения логики на разные jobs;
+  build_and_deploy: # (2) Нет разделения логики на разные jobs; всё в одном
     runs-on: ubuntu-latest
 
     steps:
@@ -19,12 +19,13 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2 # (3) Устаревшие версии экшенов
         with:
-          python-version: '3.10' # (3) Устаревшая версия Python, которая уже не поддерживается.
+          python-version: '3.10'
 
-      - name: Install dependencies # (4) Нет кэширования зависимостей и (5) Установка без вирутального окружения
+      - name: Install dependencies 
+        # (4) Нет кэширования зависимостей
+        # (5) Установка без вирутального окружения
         run: |
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+          pip install -r devops/lab_3/requirements.txt
 
       - name: Run tests
         run: |
@@ -32,5 +33,6 @@ jobs:
         continue-on-error: true # (6) Игнорирование ошибок тестирования
 
       - name: Deploy
-        run: | # (7) Жёстко закодированный секрет
+        # (7) Жёстко закодированный секрет
+        run: | 
           echo "Deploying to production with SECRET=hardcoded_secret"
