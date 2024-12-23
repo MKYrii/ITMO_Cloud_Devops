@@ -1,0 +1,36 @@
+name: Bad CI
+
+on:
+  push:
+    branches:
+      - '*' # (1) Неоптимальные триггеры для сборок
+  pull_request:
+    branches:
+      - '*' # (1) Неоптимальные триггеры для сборок
+
+jobs:
+  build_and_deploy: # (2) Нет разделения логики на разные jobs;
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v1 # (3) Устаревшие версии экшенов
+
+      - name: Setup outdated Python
+        uses: actions/setup-python@v2 # (3) Устаревшие версии экшенов
+        with:
+          python-version: '3.6' # (3) Устаревшая версия Python, которая уже не поддерживается.
+
+      - name: Install dependencies # (4) Нет кэширования зависимостей и (5) Установка без вирутального окружения
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: |
+          pytest
+        continue-on-error: true # (6) Игнорирование ошибок тестирования
+
+      - name: Deploy
+        run: | # (7) Жёстко закодированный секрет
+          echo "Deploying to production with SECRET=hardcoded_secret"
