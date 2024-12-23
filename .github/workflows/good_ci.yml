@@ -4,6 +4,7 @@ on: # Ограничение триггеров только необходим�
   push:
     branches:
       - main 
+      - devops-lab-3
   pull_request:
     branches:
       - main
