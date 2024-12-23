@@ -23,7 +23,7 @@ jobs:
 
       - name: Install dependencies 
         # (4) Нет кэширования зависимостей
-        # (5) Установка без вирутального окружения
+        # (5) Установка без виртуального окружения
         run: |
           pip install -r devops/lab_3/requirements.txt
 
