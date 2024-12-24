@@ -48,26 +48,28 @@
 
 ### Настройка Hashicorp Vault и Интеграция с GitHub Actions
 
-Установим Vault. Для нашей работы сделаем это с помощью Docker и запустия для простоты в режиме разработки, это упростит настройку, но, конечно, для продакшена так не надо делать:
+---
+
+Установим Vault. Для нашей работы сделаем это с помощью Docker и запустим для простоты в режиме разработки, это упростит настройку, но, конечно, для продакшена так не надо делать:
 
 `docker pull hashicorp/vault`
 
 `docker run --cap-add=IPC_LOCK -e 'VAULT_DEV_ROOT_TOKEN_ID=novkyn' -e 'VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200' -p 8200:8200 hashicorp/vault`
 
-Контейнер успешно запустился.
+Контейнер успешно запустился. Сохраним токен в секретах GitHub.
 
 ![контейнер Vault](screenshots/vault.png)
 
 Добавим секреты в Vault. Все будем делать внутри контейнера:
 
 ```
-# Инициализация KV secret engine (версия 2)
+# Инициализация KV secret engine
 docker exec -e VAULT_ADDR='http://127.0.0.1:8200' -e VAULT_TOKEN='novkyn' -it 4056a3728c0c vault secrets enable -version=2 kv
 
 # Добавление секрета
 docker exec -e VAULT_ADDR='http://127.0.0.1:8200' -e VAULT_TOKEN='novkyn' -it 4056a3728c0c vault kv put kv/myapp MY_APP_SECRET="emptysecret"
 ```
-Теперь сделаем настройку доступа GitHub Actions к Vault с помощью `AppRole`. Но для начала создадим файл `myapp-policy.txt`, в котором и напишем политику для доступа к секретам:
+Теперь сделаем настройку доступа GitHub Actions к Vault с помощью `AppRole`. Но для начала создадим файл `myapp-policy.txt`, в котором напишем политику для доступа к секретам:
 
 ```
 path "kv/data/myapp" {
@@ -98,15 +100,17 @@ docker exec -e VAULT_ADDR='http://127.0.0.1:8200' -e VAULT_TOKEN='novkyn' -it 40
 docker exec -e VAULT_ADDR='http://127.0.0.1:8200' -e VAULT_TOKEN='novkyn' -it 4056a3728c0c vault write -f auth/approle/role/myapp-role/secret-id
 ```
 
-Сохраним их в секретах GitHib в нашем репозитории.
+Сохраним их в секретах GitHub в нашем репозитории.
+
+Теперь же так как Vault запущен локально, придется перебрасывать порт. Для этого используем `ngrok`, это делается предельно просто, поэтому не будем расписывать. От него мы получим URL, который также добавим в секреты GitHub.
 
 ---
 
-## Обновление Workflow
+## Обновление Workflow 
 
-В файл `good_ci.yml` добавим новые шаги для аутентификации с Vault, получения и проверки секрета оттуда. Изменения сохраним в новом файле `good_ci_with_vault.yml`.
+В файл `good_ci.yml` добавим новые шаги для Vault, а именно, установку Vault CLI, аутентификацию, получение секретов и проверку получения секрета. Изменения сохраним в новом файле `good_ci_with_vault.yml`.
 
-Не будем усложнять интеграцию Vault и используем уже существующий экшен для него `hashicorp/vault-action`:
+Используем уже существующий экшен для Vault `hashicorp/vault-action`:
 
 ```yml
 name: Good CI with Vault
@@ -147,20 +151,27 @@ jobs:
           pip install --upgrade pip
           pip install -r devops/lab_3/requirements.txt
 
-      - name: Authenticate with Vault
-        uses: hashicorp/vault-action@v2 # Использование экшена для аутентификации
-        with:
-          url: ${{ secrets.VAULT_ADDR }} # URL нашего Vault сервера
-          method: approle # Метод аутентификации
-          roleId: ${{ secrets.VAULT_ROLE_ID }} # Role ID из Vault
-          secretId: ${{ secrets.VAULT_SECRET_ID }} # Secret ID из Vault
+      - name: Install Vault CLI  # Установка Vault CLI, чтобы использовать команды vault
+        run: |
+          curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor > hashicorp.gpg
+          sudo install -o root -g root -m 644 hashicorp.gpg /usr/share/keyrings/hashicorp-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+          sudo apt-get update && sudo apt-get install vault
 
-      - name: Retrieve secrets from Vault
+      - name: Authenticate with Vault # Аутентификация
+        uses: hashicorp/vault-action@v2
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+
+      - name: Retrieve secrets from Vault # Получение секрета
         id: secrets
         run: |
-          # Получение секрета из Vault
+          export VAULT_ADDR="${{ secrets.VAULT_ADDR }}"
+          export VAULT_TOKEN="${{ secrets.VAULT_TOKEN }}"
           MY_APP_SECRET=$(vault kv get -field=MY_APP_SECRET kv/myapp)
-          # Сохранение секрета как output
           echo "::set-output name=my_app_secret::$MY_APP_SECRET"
 
       - name: Validate Secret # шаг просто для проверки получения секрета
@@ -173,8 +184,6 @@ jobs:
           fi
 
       - name: Run tests
-        env:
-          MY_APP_SECRET: ${{ steps.secrets.outputs.my_app_secret }} # Передача секрета в переменные окружения
         run: |
           source venv/bin/activate
           pytest
@@ -203,9 +212,23 @@ jobs:
 
       - name: Deploy
         env:
-          MY_APP_SECRET: ${{ steps.secrets.outputs.my_app_secret }} # Использование секрета
+          SECRET: ${{ secrets.MY_APP_SECRET }}
         run: |
-          # Использование секрета без его вывода в лог
-          deploy_command --secret "$MY_APP_SECRET"
+          echo "Deploying to production with SECRET=${SECRET}"
 ```
+
+---
+
+## Просмотр работы CI/CD
+
+Коммитим и пушим изменения, создаем пулл реквест. Затем в репозитории в разделе `Actions` смотрим на статусы наших worlkflows. 
+
+Не без проблем, но мы смогли сделать так, чтобы все заработало:
+
+![ci/cd with wault](screenshots/workflow.png)
+
+## Заключение
+
+**Таким образом,** мы добавили интеграцию Vault с GitHub Actions, узнали, как это все делается, в итоге смогли успешно запустить workflow.
+
 
