@@ -55,6 +55,7 @@ jobs:
         id: secrets
         run: |
           export VAULT_ADDR="${{ secrets.VAULT_ADDR }}"
+          export VAULT_TOKEN="${{ secrets.VAULT_TOKEN }}"
           # Получение секрета из Vault
           MY_APP_SECRET=$(vault kv get -field=MY_APP_SECRET kv/myapp)
           # Сохранение секрета как output
