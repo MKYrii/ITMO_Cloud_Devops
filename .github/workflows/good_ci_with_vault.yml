@@ -103,5 +103,4 @@ jobs:
         env:
           MY_APP_SECRET: ${{ steps.secrets.outputs.my_app_secret }} # Использование секрета
         run: |
-          # Использование секрета без его вывода в лог
-          deploy_command --secret "$MY_APP_SECRET"
+          echo "Deploying to production with SECRET="$MY_APP_SECRET"
