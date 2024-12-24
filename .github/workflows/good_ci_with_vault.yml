@@ -41,8 +41,8 @@ jobs:
         with:
           url: ${{ secrets.VAULT_ADDR }} # URL нашего Vault сервера
           method: approle # Метод аутентификации
-          role_id: ${{ secrets.VAULT_ROLE_ID }} # Role ID из Vault
-          secret_id: ${{ secrets.VAULT_SECRET_ID }} # Secret ID из Vault
+          roleId: ${{ secrets.VAULT_ROLE_ID }} # Role ID из Vault
+          secretId: ${{ secrets.VAULT_SECRET_ID }} # Secret ID из Vault
 
       - name: Retrieve secrets from Vault
         id: secrets
