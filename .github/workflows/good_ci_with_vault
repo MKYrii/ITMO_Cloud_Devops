@@ -1,0 +1,98 @@
+name: Good CI with Vault
+
+on:
+  push:
+    branches:
+      - main
+      - devops-lab-3
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('devops/lab_3/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies (venv)
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r devops/lab_3/requirements.txt
+
+      - name: Authenticate with Vault
+        uses: hashicorp/vault-action@v2 # Использование экшена для аутентификации
+        with:
+          url: ${{ secrets.VAULT_ADDR }} # URL нашего Vault сервера
+          method: approle # Метод аутентификации
+          role_id: ${{ secrets.VAULT_ROLE_ID }} # Role ID из Vault
+          secret_id: ${{ secrets.VAULT_SECRET_ID }} # Secret ID из Vault
+
+      - name: Retrieve secrets from Vault
+        id: secrets
+        run: |
+          # Получение секрета из Vault
+          MY_APP_SECRET=$(vault kv get -field=MY_APP_SECRET kv/myapp)
+          # Сохранение секрета как output
+          echo "::set-output name=my_app_secret::$MY_APP_SECRET"
+
+      - name: Validate Secret # шаг просто для проверки получения секрета
+        run: |
+          if [ -z "${{ steps.secrets.outputs.my_app_secret }}" ]; then
+            echo "Секрет не получен из Vault."
+            exit 1
+          else
+            echo "Секрет успешно получен."
+          fi
+
+      - name: Run tests
+        env:
+          MY_APP_SECRET: ${{ steps.secrets.outputs.my_app_secret }} # Передача секрета в переменные окружения
+        run: |
+          source venv/bin/activate
+          pytest
+
+      - name: Build artifact
+        run: |
+          mkdir -p build
+          echo "Build artifact content" > build/artifact.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: my-app-build
+          path: build/
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: my-app-build
+          path: build/
+
+      - name: Deploy
+        env:
+          MY_APP_SECRET: ${{ steps.secrets.outputs.my_app_secret }} # Использование секрета
+        run: |
+          # Использование секрета без его вывода в лог
+          deploy_command --secret "$MY_APP_SECRET"
