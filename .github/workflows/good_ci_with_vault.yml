@@ -54,6 +54,7 @@ jobs:
       - name: Retrieve secrets from Vault
         id: secrets
         run: |
+          export VAULT_ADDR="${{ secrets.VAULT_ADDR }}"
           # Получение секрета из Vault
           MY_APP_SECRET=$(vault kv get -field=MY_APP_SECRET kv/myapp)
           # Сохранение секрета как output
