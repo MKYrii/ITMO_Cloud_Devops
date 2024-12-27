@@ -60,7 +60,10 @@
 
 Посредством чтения документации (https://learn.microsoft.com/en-us/azure/?product=popular) и других профильных сайтов мы заполнили 5 первых столбцов. Главной сложностью было разделять значения для одинаковых сервисов в запвисимости от метрики, например _Orchestration Cloud_ и _IR SSIS STD D4 v2_ для Azure Data Factory.
 
-В результате мы получили таблицу, которая доступна в папке этой лабораторной или по ссылке: https://docs.google.com/spreadsheets/d/1S_c3iGmrRPFFp3ZLcsvukp3TLBYP9hHhAIPMn8NQdEU/edit?usp=sharing
+В результате мы получили таблицу, которая также доступна в папке этой лабораторной: 
+
+![image](https://github.com/user-attachments/assets/57899c90-26f0-4847-bc63-cb6b63ef90d6)
+
 
 ## Вывод
 
